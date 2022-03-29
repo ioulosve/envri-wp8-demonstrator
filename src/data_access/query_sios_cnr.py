@@ -1,5 +1,28 @@
 import requests
 
+MAPPING_ECV_VARIABLES = {'Pressure_average':['Pressure (surface)'],
+                         'Wind_speed_average_at_33m':['Surface Wind Speed and direction'], 
+                         'Wind_speed_average_at_10m':['Surface Wind Speed and direction'], 
+                         'Wind_speed_average_at_5m':['Surface Wind Speed and direction'], 
+                         'Wind_speed_average_at_2m':['Surface Wind Speed and direction'],
+                         'Wind_direction_average_at_33m':['Surface Wind Speed and direction'], 
+                         'Wind_direction_average_at_10m':['Surface Wind Speed and direction'], 
+                         'Wind_direction_average_at_5m':['Surface Wind Speed and direction'], 
+                         'Wind_direction_average_at_2m':['Surface Wind Speed and direction'],
+                         'Temperature_average_at_33m':['Temperature (near surface)'], 
+                         'Temperature_average_at_10m':['Temperature (near surface)'], 
+                         'Temperature_average_at_5m':['Temperature (near surface)'], 
+                         'Temperature_average_at_2m':['Temperature (near surface)'],
+                         'Relative_humidity_average_at_33m':['Water Vapour (surface)'], 
+                         'Relative_humidity_average_at_10m':['Water Vapour (surface)'], 
+                         'Relative_humidity_average_at_5m':['Water Vapour (surface)'],
+                         'Relative_humidity_average_at_2m':['Water Vapour (surface)'],
+                         'Total_net_radiation_average_at_33m ':['Surface Radiation Budget'],
+                         'GUV_O3':['Ozone'],
+                         'Brewer_O3':['Ozone'],
+                         'UV_RAD_O3':['Ozone'],
+                         'M_124_O3':['Ozone']}
+
 def get_iadc_datasets():
     datasets = []
     endpoint = 'https://data.iadc.cnr.it/erddap/search/advanced.json'
@@ -62,6 +85,9 @@ def get_list_platforms():
     platforms.append(platform)
 
   return platforms
+
+def get_list_variables():
+  return MAPPING_ECV_VARIABLES
 
 if __name__ == "__main__":
   print(get_list_platforms())
