@@ -1,6 +1,6 @@
 from urllib import request
 import requests
-
+import xarray as xr
 
 MAPPING_ECV_VARIABLES = {'air_pressure':['Pressure (surface)'],
                          'wind_speed':['Surface Wind Speed and direction'],
@@ -80,6 +80,28 @@ def query_dataset(variables_list=[], temporal_extent=[None,None], spatial_extent
   
   return filtered_datasets
 
+def read_dataset(dataset_id, variables_list=[], temporal_extent=[None,None], spatial_extent=[None, None, None, None]):
+  erddap_vars = get_erddap_variables_from_ecv_list(dataset_id, variables_list)
+
+  # No datasets found with this variables
+  if erddap_vars == []:
+    return xr.Dataset()
+
+  endpoint = f'https://data.iadc.cnr.it/erddap/tabledap/{dataset_id}.nc'
+  query = endpoint + f'?station_id,latitude,longitude,time,{",".join(erddap_vars)}&latitude>={spatial_extent[1]}&latitude<={spatial_extent[3]}&longitude>={spatial_extent[0]}&longitude<={spatial_extent[2]}&time>={temporal_extent[0]}&time<={temporal_extent[1]}'
+  
+
+  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+  
+  # No datasets for the query
+  if response.status_code == 404:
+    return xr.Dataset()
+
+  ds_disk = xr.open_dataset(response.content)
+
+  return ds_disk
+
+
 ### Utils ###        
 
 def get_reverse_var_map():
@@ -130,6 +152,33 @@ def get_standard_names_from_dataset(datasetID):
   # return list removing duplicates  
   return list(dict.fromkeys(standard_names))
 
+def get_erddap_variables_from_ecv_list(datasetID, variable_list):
+  erddap_variables = []
+  query = f'https://data.iadc.cnr.it/erddap/info/{datasetID}/index.json'
+  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+
+  table = response.json()['table']
+  
+  reversed_map = get_reverse_var_map()
+  
+  # get standard names equivalent from variable_list
+  sn_from_variable_list = []
+  for k,v in reversed_map.items():
+    if k in variable_list:
+      sn_from_variable_list.extend(v)
+  
+  # Indexes for rows in json file
+  variable_name = table['columnNames'].index('Variable Name') 
+  attribute_name = table['columnNames'].index('Attribute Name') 
+  value = table['columnNames'].index('Value')
+  
+  # get erddap variable names from selected standard names
+  for row in table['rows']:
+    if row[attribute_name] == 'standard_name' and row[value] in sn_from_variable_list:
+      erddap_variables.append(row[variable_name])
+  
+  return erddap_variables
+
 
 if __name__ == "__main__":
   #print(get_list_platforms())
@@ -138,33 +187,6 @@ if __name__ == "__main__":
 
   #print(get_metadata_from_dataset('cct_radiation_d2'))
   #print(get_standard_names_from_dataset('cct_radiation_d2'))
-  print(query_dataset(['Pressure (surface)', 'Ozone'], ['2009-09-20T00:00:00Z','2021-09-20T00:00:00Z'], [-22, 37, 52, 88]))
-
-
-
-
-
-  '''
-MAPPING_ECV_VARIABLES = {'Pressure_average':['Pressure (surface)'],
-                         'Wind_speed_average_at_33m':['Surface Wind Speed and direction'], 
-                         'Wind_speed_average_at_10m':['Surface Wind Speed and direction'], 
-                         'Wind_speed_average_at_5m':['Surface Wind Speed and direction'], 
-                         'Wind_speed_average_at_2m':['Surface Wind Speed and direction'],
-                         'Wind_direction_average_at_33m':['Surface Wind Speed and direction'], 
-                         'Wind_direction_average_at_10m':['Surface Wind Speed and direction'], 
-                         'Wind_direction_average_at_5m':['Surface Wind Speed and direction'], 
-                         'Wind_direction_average_at_2m':['Surface Wind Speed and direction'],
-                         'Temperature_average_at_33m':['Temperature (near surface)'], 
-                         'Temperature_average_at_10m':['Temperature (near surface)'], 
-                         'Temperature_average_at_5m':['Temperature (near surface)'], 
-                         'Temperature_average_at_2m':['Temperature (near surface)'],
-                         'Relative_humidity_average_at_33m':['Water Vapour (surface)'], 
-                         'Relative_humidity_average_at_10m':['Water Vapour (surface)'], 
-                         'Relative_humidity_average_at_5m':['Water Vapour (surface)'],
-                         'Relative_humidity_average_at_2m':['Water Vapour (surface)'],
-                         'Total_net_radiation_average_at_33m ':['Surface Radiation Budget'],
-                         'GUV_O3':['Ozone'],
-                         'Brewer_O3':['Ozone'],
-                         'UV_RAD_O3':['Ozone'],
-                         'M_124_O3':['Ozone']}
-'''
+  #print(query_dataset(['Pressure (surface)', 'Ozone'], ['2009-09-20T00:00:00Z','2021-09-20T00:00:00Z'], [-22, 37, 52, 88]))
+  #print(get_erddap_variables_from_ecv_list('cct_meteo_d2', ['Pressure (surface)', 'Surface Wind Speed and direction']))
+  print(read_dataset('cct_meteo_d2', ['Pressure (surface)', 'Temperature (near surface)', 'Ozone' ],  ['1990-09-20T00:00:00Z','1991-09-20T00:00:00Z'], [-22, 37, 52, 88]))
