@@ -90,7 +90,6 @@ def read_dataset(dataset_id, variables_list=[], temporal_extent=[None,None], spa
   endpoint = f'https://data.iadc.cnr.it/erddap/tabledap/{dataset_id}.nc'
   query = endpoint + f'?station_id,latitude,longitude,time,{",".join(erddap_vars)}&latitude>={spatial_extent[1]}&latitude<={spatial_extent[3]}&longitude>={spatial_extent[0]}&longitude<={spatial_extent[2]}&time>={temporal_extent[0]}&time<={temporal_extent[1]}'
   
-
   response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
   
   # No datasets for the query
@@ -183,10 +182,5 @@ def get_erddap_variables_from_ecv_list(datasetID, variable_list):
 if __name__ == "__main__":
   #print(get_list_platforms())
   #print(get_list_variables())
-  #print(get_reverse_var_map())
-
-  #print(get_metadata_from_dataset('cct_radiation_d2'))
-  #print(get_standard_names_from_dataset('cct_radiation_d2'))
   #print(query_dataset(['Pressure (surface)', 'Ozone'], ['2009-09-20T00:00:00Z','2021-09-20T00:00:00Z'], [-22, 37, 52, 88]))
-  #print(get_erddap_variables_from_ecv_list('cct_meteo_d2', ['Pressure (surface)', 'Surface Wind Speed and direction']))
-  print(read_dataset('cct_meteo_d2', ['Pressure (surface)', 'Temperature (near surface)', 'Ozone' ],  ['1990-09-20T00:00:00Z','1991-09-20T00:00:00Z'], [-22, 37, 52, 88]))
+  print(read_dataset('cct_meteo_d2', ['Pressure (surface)', 'Temperature (near surface)', 'Ozone' ],  ['2021-09-20T00:00:00Z','2022-09-20T00:00:00Z'], [-22, 37, 52, 88]))
