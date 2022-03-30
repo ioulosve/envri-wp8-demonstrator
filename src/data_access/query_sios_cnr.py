@@ -1,3 +1,4 @@
+from urllib import request
 import requests
 
 
@@ -6,7 +7,8 @@ MAPPING_ECV_VARIABLES = {'air_pressure':['Pressure (surface)'],
                          'wind_from_direction':['Surface Wind Speed and direction'], 
                          'air_temperature':['Temperature (near surface)'],
                          'relative_humidity':['Water Vapour (surface)'], 
-                         'equivalent_thickness_at_stp_of_atmosphere_ozone_content':['Ozone']}
+                         'equivalent_thickness_at_stp_of_atmosphere_ozone_content':['Ozone'],
+                         'surface_net_downward_radiative_flux':['Surface Radiation Budget']}
 
 def get_iadc_datasets():
     datasets = []
@@ -42,31 +44,44 @@ def get_list_variables():
   return MAPPING_ECV_VARIABLES
 
 def query_dataset(variables_list=[], temporal_extent=[None,None], spatial_extent=[None,None,None,None]):
-  filtered_datasets = []
-  reversed_var_map = get_reverse_var_map()
+  # This works but needs to be optimized
+  datasets = []
+
   endpoint = 'https://data.iadc.cnr.it/erddap/search/advanced.json'
+  query = endpoint + f'?searchFor=ENVRI&minLon={spatial_extent[0]}&minLat={spatial_extent[1]}&maxLon={spatial_extent[2]}&maxLat={spatial_extent[3]}&minTime={temporal_extent[0]}&maxTime={temporal_extent[1]}'
+  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
 
-  for var in variables_list:
-    # extract ERDDAP variables
-    ERDDAP_vars = reversed_var_map[var]
-    for evar in ERDDAP_vars:
-      query = endpoint + f'?searchFor=ENVRI&standard_name={evar}&minLon={spatial_extent[0]}&minLat={spatial_extent[1]}&maxLon={spatial_extent[2]}&maxLat={spatial_extent[3]}&minTime={temporal_extent[0]}&maxTime={temporal_extent[1]}'
-      response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+  # No datasets for the query
+  if response.status_code == 404:
+    return datasets
+    
+  table = response.json()['table']
+  id = table['columnNames'].index('Dataset ID')
+  tabledap = table['columnNames'].index('tabledap')
 
-      table = response.json()['table']
-      id = table['columnNames'].index('Dataset ID')
-      tabledap = table['columnNames'].index('tabledap')
-      for row in table['rows']:
-        filtered_datasets.append({
-          'title': row[id],
-          'urls' : [{'url': row[tabledap] , 'type':'OPeNDAP URL'}, {'url': row[tabledap]+'.nc' , 'type':'NetCDF-3 Direct Download'}],
-          'ecv_variables' : [var],
-          'time_period': None,
-          'platform_id': None
-        })
-        
+  for row in table['rows']:
+    metadata = get_metadata_from_dataset(row[id])
+    standard_names = get_standard_names_from_dataset(row[id])
 
-# Reverse the ecv mapping, useful for queries on erddap
+    ecvs = []
+    for sn in standard_names:
+      if sn in MAPPING_ECV_VARIABLES.keys():
+        ecvs.extend(MAPPING_ECV_VARIABLES[sn])
+
+    datasets.append({
+      'title': metadata['title'],
+      'urls' : [{'url': row[tabledap] , 'type':'opendap'}, {'url': row[tabledap]+'.nc' , 'type':'data_file'}],
+      'ecv_variables' : list(dict.fromkeys(ecvs)),
+      'time_period': [metadata['time_coverage_start'], metadata['time_coverage_end']],
+      'platform_id': metadata['ENVRI_platform_short_name']
+    })
+
+  filtered_datasets = list(filter(lambda x : set(variables_list) & set(x['ecv_variables']), datasets))
+  
+  return filtered_datasets
+
+### Utils ###        
+
 def get_reverse_var_map():
   ecv_reverse = {}
   for k,v in MAPPING_ECV_VARIABLES.items():
@@ -97,13 +112,33 @@ def get_metadata_from_dataset(datasetID):
     
   return metadata
 
+def get_standard_names_from_dataset(datasetID):
+  standard_names=[]
+  query = f'https://data.iadc.cnr.it/erddap/info/{datasetID}/index.json'
+  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+
+  table = response.json()['table']
+    
+  # Indexes for rows in json file
+  attribute_name = table['columnNames'].index('Attribute Name') 
+  value = table['columnNames'].index('Value')
+  
+  for row in table['rows']:
+    if row[attribute_name] == 'standard_name':
+      standard_names.append(row[value])
+  
+  # return list removing duplicates  
+  return list(dict.fromkeys(standard_names))
+
+
 if __name__ == "__main__":
   #print(get_list_platforms())
   #print(get_list_variables())
   #print(get_reverse_var_map())
 
   #print(get_metadata_from_dataset('cct_radiation_d2'))
-
+  #print(get_standard_names_from_dataset('cct_radiation_d2'))
+  print(query_dataset(['Pressure (surface)', 'Ozone'], ['2009-09-20T00:00:00Z','2021-09-20T00:00:00Z'], [-22, 37, 52, 88]))
 
 
 
