@@ -15,7 +15,7 @@ dependencies:
   - folium
   - ipykernel==5.5.5
   - IPython==7.26.0
-  - notebook==6.0.3
+  - notebook
   - jupyter-server-proxy
   - scipy
   - pip:

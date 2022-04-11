@@ -2,7 +2,7 @@ from urllib import request
 import requests
 import xarray as xr
 
-MAPPING_ECV_VARIABLES = {'air_pressure':['Pressure (surface)'],
+MAPPING_ECV_VARIABLES_CNR = {'air_pressure':['Pressure (surface)'],
                          'wind_speed':['Surface Wind Speed and direction'],
                          'wind_from_direction':['Surface Wind Speed and direction'], 
                          'air_temperature':['Temperature (near surface)'],
@@ -41,7 +41,7 @@ def get_list_platforms():
   return platforms
 
 def get_list_variables():
-  return MAPPING_ECV_VARIABLES
+  return MAPPING_ECV_VARIABLES_CNR
 
 def query_dataset(variables_list=[], temporal_extent=[None,None], spatial_extent=[None,None,None,None]):
   # This works but needs to be optimized
@@ -65,8 +65,8 @@ def query_dataset(variables_list=[], temporal_extent=[None,None], spatial_extent
 
     ecvs = []
     for sn in standard_names:
-      if sn in MAPPING_ECV_VARIABLES.keys():
-        ecvs.extend(MAPPING_ECV_VARIABLES[sn])
+      if sn in MAPPING_ECV_VARIABLES_CNR.keys():
+        ecvs.extend(MAPPING_ECV_VARIABLES_CNR[sn])
 
     datasets.append({
       'title': metadata['title'],
@@ -105,9 +105,9 @@ def read_dataset(dataset_id, variables_list=[], temporal_extent=[None,None], spa
 
 def get_reverse_var_map():
   ecv_reverse = {}
-  for k,v in MAPPING_ECV_VARIABLES.items():
+  for k,v in MAPPING_ECV_VARIABLES_CNR.items():
     keys = []
-    for k1,v1 in MAPPING_ECV_VARIABLES.items():
+    for k1,v1 in MAPPING_ECV_VARIABLES_CNR.items():
       if v[0] == v1[0]:
         keys.append(k1)
         ecv_reverse[v[0]] = keys
@@ -182,5 +182,5 @@ def get_erddap_variables_from_ecv_list(datasetID, variable_list):
 if __name__ == "__main__":
   #print(get_list_platforms())
   #print(get_list_variables())
-  #print(query_dataset(['Pressure (surface)', 'Ozone'], ['2009-09-20T00:00:00Z','2021-09-20T00:00:00Z'], [-22, 37, 52, 88]))
-  print(read_dataset('cct_meteo_d2', ['Pressure (surface)', 'Temperature (near surface)', 'Ozone' ],  ['2021-09-20T00:00:00Z','2022-09-20T00:00:00Z'], [-22, 37, 52, 88]))
+  print(query_dataset(['Pressure (surface)', 'Ozone'], ['2009-09-20T00:00:00Z','2021-09-20T00:00:00Z'], [-22, 37, 52, 88]))
+  #print(read_dataset('cct_meteo_d2', ['Pressure (surface)', 'Temperature (near surface)', 'Ozone' ],  ['2021-09-20T00:00:00Z','2022-09-20T00:00:00Z'], [-22, 37, 52, 88]))
