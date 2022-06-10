@@ -32,13 +32,19 @@ def query_datasets(variables_list=[], temporal_extent=[None,None], spatial_exten
 
     return datasets
 
-# How to distinguish between cnr or metno dataset ids?
+# we will use the opendap url as the dataset_id to distinguish between cnr and metno datasets
 def read_dataset(dataset_id,variables_list=[], temporal_extent=[None,None], spatial_extent=[None,None,None,None]):
-    dataset = read_dataset_cnr(dataset_id, variables_list, temporal_extent, spatial_extent)
-    if dataset is None:
-        dataset = read_dataset_metno(dataset_id, variables_list, temporal_extent, spatial_extent)
+  # Variable alias, just for convenience
+  dataset_opendap_url = dataset_id
+  dataset = None
 
-    return dataset
+  if ("met.no" in dataset_opendap_url):
+    dataset = read_dataset_metno(dataset_id, variables_list, temporal_extent, spatial_extent)
+  
+  if ("iadc.cnr.it" in dataset_opendap_url):
+    dataset = read_dataset_cnr(dataset_id, variables_list, temporal_extent, spatial_extent)
+  
+  return dataset
 
 
 
@@ -175,9 +181,9 @@ def get_list_platforms_cnr():
   for datasetID in datasets:
     metadata = get_metadata_from_dataset(datasetID)
     platform = { 'short_name': metadata['ENVRI_platform_short_name'],
-                'latitude':  metadata['ENVRI_platform_long_name'],
-                'longitude':  metadata['geospatial_lat_max'],
-                'long_name':  metadata['geospatial_lon_max'],
+                'latitude':  metadata['geospatial_lat_max'],
+                'longitude':  metadata['geospatial_lon_max'],
+                'long_name':  metadata['ENVRI_platform_long_name'],
                 'URI':  metadata['ENVRI_platform_URI'],
                 'ground_elevation':  None }
 
@@ -220,7 +226,7 @@ def query_datasets_cnr(variables_list=[], temporal_extent=[None,None], spatial_e
 
     datasets.append({
       'title': metadata['title'],
-      'urls' : [{'url': row[tabledap] , 'type':'opendap'}, {'url': row[tabledap]+'.nc' , 'type':'data_file'}],
+      'urls' : [{'url': metadata['infoUrl'] , 'type':'landing_page'}, {'url': row[tabledap]+'.nc' , 'type':'opendap'}, {'url': row[tabledap]+'.nc' , 'type':'data_file'}],
       'ecv_variables' : list(dict.fromkeys(ecvs)),
       'time_period': [metadata['time_coverage_start'], metadata['time_coverage_end']],
       'platform_id': metadata['ENVRI_platform_short_name']
@@ -230,14 +236,20 @@ def query_datasets_cnr(variables_list=[], temporal_extent=[None,None], spatial_e
   
   return filtered_datasets
 
-def read_dataset_cnr(dataset_id, variables_list=[], temporal_extent=[None,None], spatial_extent=[None, None, None, None]):
+def read_dataset_cnr(dataset_opendap_url, variables_list=[], temporal_extent=[None,None], spatial_extent=[None, None, None, None]):
+  
+  # get dataset id from opendap_url
+  dataset_id = dataset_opendap_url.split('/')[-1].split('.')[0]
   erddap_vars = get_erddap_variables_from_ecv_list(dataset_id, variables_list)
+
+  print(dataset_id)
+  print(dataset_opendap_url)
 
   # No datasets found with this variables
   if erddap_vars == []:
     return None
 
-  endpoint = f'https://data.iadc.cnr.it/erddap/tabledap/{dataset_id}.nc'
+  endpoint = dataset_opendap_url
   query = endpoint + f'?station_id,latitude,longitude,time,{",".join(erddap_vars)}&latitude>={spatial_extent[1]}&latitude<={spatial_extent[3]}&longitude>={spatial_extent[0]}&longitude<={spatial_extent[2]}&time>={temporal_extent[0]}&time<={temporal_extent[1]}'
   
   response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
@@ -336,4 +348,4 @@ if __name__ == "__main__":
   #print(get_list_platforms())
   #print(get_list_variables())
   #print(query_datasets(['Pressure (surface)', 'Ozone'], ['2009-09-20T00:00:00Z','2021-09-20T00:00:00Z'], [-22, 37, 52, 88]))
-  print(read_dataset('cct_meteo_d2', ['Pressure (surface)', 'Temperature (near surface)', 'Ozone' ],  ['2021-09-20T00:00:00Z','2022-09-20T00:00:00Z'], [-22, 37, 52, 88]))
+  print(read_dataset('https://data.iadc.cnr.it/erddap/tabledap/cct_meteo_d2.nc', ['Pressure (surface)', 'Temperature (near surface)', 'Ozone' ],  ['2021-09-20T00:00:00Z','2022-09-20T00:00:00Z'], [-22, 37, 52, 88]))
