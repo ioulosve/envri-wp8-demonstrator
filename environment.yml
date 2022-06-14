@@ -18,5 +18,7 @@ dependencies:
   - notebook
   - jupyter-server-proxy
   - scipy
+  - netcdf4
+  - pydap
   - pip:
     - icoscp

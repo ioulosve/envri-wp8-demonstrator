@@ -110,4 +110,5 @@ if __name__ == "__main__":
     print(get_list_variables())
     # <h2>Get list of datasets (example)</h2>
     print(query_datasets(['Pressure (surface)'], ['1810-03-01T03:00:00','1960-10-01T03:00:00'], [10, 70, 23, 80]))
+    print(read_dataset('https://thredds.met.no/thredds/dodsC/met.no/observations/stations/SN99938.nc'))
 

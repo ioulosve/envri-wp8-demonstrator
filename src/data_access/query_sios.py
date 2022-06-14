@@ -3,6 +3,9 @@ from pandas import concat
 import requests
 import xarray as xr 
 from requests.exceptions import HTTPError
+import os
+
+cnr_certificate_path = os.path.join(os.getcwd(),'sios_cnr_certificate_chain.pem')
 
 #provide the list of platforms for the demonstrator
 def get_list_platforms():
@@ -165,7 +168,7 @@ def get_iadc_datasets():
     datasets = []
     endpoint = 'https://data.iadc.cnr.it/erddap/search/advanced.json'
     query = endpoint + '?searchFor=ENVRI'
-    response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+    response = requests.get(query, verify=cnr_certificate_path)
 
     table = response.json()['table']
     index = table['columnNames'].index('Dataset ID') # Perché il JSON è formattato così
@@ -205,7 +208,7 @@ def query_datasets_cnr(variables_list=[], temporal_extent=[None,None], spatial_e
 
   endpoint = 'https://data.iadc.cnr.it/erddap/search/advanced.json'
   query = endpoint + f'?searchFor=ENVRI&minLon={spatial_extent[0]}&minLat={spatial_extent[1]}&maxLon={spatial_extent[2]}&maxLat={spatial_extent[3]}&minTime={temporal_extent[0]}&maxTime={temporal_extent[1]}'
-  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+  response = requests.get(query, verify=cnr_certificate_path)
 
   # No datasets for the query
   if response.status_code == 404:
@@ -242,9 +245,6 @@ def read_dataset_cnr(dataset_opendap_url, variables_list=[], temporal_extent=[No
   dataset_id = dataset_opendap_url.split('/')[-1].split('.')[0]
   erddap_vars = get_erddap_variables_from_ecv_list(dataset_id, variables_list)
 
-  print(dataset_id)
-  print(dataset_opendap_url)
-
   # No datasets found with this variables
   if erddap_vars == []:
     return None
@@ -252,8 +252,8 @@ def read_dataset_cnr(dataset_opendap_url, variables_list=[], temporal_extent=[No
   endpoint = dataset_opendap_url
   query = endpoint + f'?station_id,latitude,longitude,time,{",".join(erddap_vars)}&latitude>={spatial_extent[1]}&latitude<={spatial_extent[3]}&longitude>={spatial_extent[0]}&longitude<={spatial_extent[2]}&time>={temporal_extent[0]}&time<={temporal_extent[1]}'
   
-  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
-  
+  response = requests.get(query, verify=cnr_certificate_path)
+
   # No datasets for the query
   if response.status_code == 404:
     return None
@@ -277,7 +277,7 @@ def get_reverse_var_map():
 
 def get_metadata_from_dataset(datasetID):
   query = f'https://data.iadc.cnr.it/erddap/info/{datasetID}/index.json'
-  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+  response = requests.get(query, verify=cnr_certificate_path)
 
   table = response.json()['table']
     
@@ -297,7 +297,7 @@ def get_metadata_from_dataset(datasetID):
 def get_standard_names_from_dataset(datasetID):
   standard_names=[]
   query = f'https://data.iadc.cnr.it/erddap/info/{datasetID}/index.json'
-  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+  response = requests.get(query, verify=cnr_certificate_path)
 
   table = response.json()['table']
     
@@ -315,7 +315,7 @@ def get_standard_names_from_dataset(datasetID):
 def get_erddap_variables_from_ecv_list(datasetID, variable_list):
   erddap_variables = []
   query = f'https://data.iadc.cnr.it/erddap/info/{datasetID}/index.json'
-  response = requests.get(query, verify="sios_cnr_certificate_chain.pem")
+  response = requests.get(query, verify=cnr_certificate_path)
 
   if response.status_code == 404:
     return erddap_variables
