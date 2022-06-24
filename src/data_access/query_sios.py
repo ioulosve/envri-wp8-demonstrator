@@ -5,7 +5,8 @@ import xarray as xr
 from requests.exceptions import HTTPError
 import os
 
-cnr_certificate_path = os.path.join(os.getcwd(),'sios_cnr_certificate_chain.pem')
+dir_path = os.path.dirname(os.path.realpath(__file__))
+cnr_certificate_path = os.path.join(dir_path,'sios_cnr_certificate_chain.pem')
 
 #provide the list of platforms for the demonstrator
 def get_list_platforms():
